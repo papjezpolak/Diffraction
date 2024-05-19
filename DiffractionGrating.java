@@ -65,6 +65,11 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.RED, isChecked);
+                if (isChecked) {
+                    addWykresDyfrakcji(Color.RED);
+                } else {
+                	addOrUpdateWykresDyfrakcji(Color.RED);
+                }
                 chartsPanel.repaint();
             }
         });
@@ -74,6 +79,11 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.GREEN, isChecked);
+                if (isChecked) {
+                    addWykresDyfrakcji(Color.GREEN);
+                } else {
+                	addOrUpdateWykresDyfrakcji(Color.GREEN);
+                }
                 chartsPanel.repaint();
             }
         });
@@ -83,25 +93,29 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.BLUE, isChecked);
+                if (isChecked) {
+                    addWykresDyfrakcji(Color.BLUE);
+                } else {
+                	addOrUpdateWykresDyfrakcji(Color.BLUE);
+                }
                 chartsPanel.repaint();
             }
         });
+
 
         black.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.WHITE, isChecked);
-                if (slider1 != null) { // Dodajemy sprawdzenie czy slider1 został już zainicjowany
-                    slider1.setEnabled(!isChecked);
-                }
+                
                 if (isChecked) {
-                	addWykresDyfrakcji(blackColor); // Ustawiamy stałe długości fali dla świateł czerwonego, zielonego i niebieskiego
+                	addWykresDyfrakcji(blackColor);
                 }
                 chartsPanel.repaint();
             }
         });
-
+        
         JPanel right = new JPanel();
         right.setLayout(new GridLayout(8, 1));
         JPanel bottom = new JPanel(new FlowLayout());
@@ -134,6 +148,9 @@ public class DiffractionGrating extends JFrame {
         blue.setSelected(true);
         black.setSelected(true);
         
+        waveField.setText("380");
+        gratingField.setText("50");
+        
         right.add(red);
         right.add(green);
         right.add(blue);
@@ -141,19 +158,22 @@ public class DiffractionGrating extends JFrame {
         
         slider1 = new JSlider(380, 720);
         right.add(slider1);
+        
              
         menuBar.add(menu);
         setJMenuBar(menuBar);
 
-        bottom.add(gratingLabel);
-        bottom.add(gratingField);
-
         right.add(waveLabel);
 
         slider2 = new JSlider(JSlider.HORIZONTAL, 0, 100, 50);
-        bottom.add(slider2);
+        
+        slider1.setValue(380);
+        slider2.setValue(50);
+        
         right.add(waveField);
-
+        bottom.add(gratingLabel);
+        bottom.add(gratingField);
+        bottom.add(slider2);
         add(right, BorderLayout.EAST);
         add(bottom, BorderLayout.SOUTH);
 
@@ -230,11 +250,11 @@ public class DiffractionGrating extends JFrame {
         double lambda = 0.0005;
         double d = 0.002;
 
-        if (color.equals(Color.RED)) {
+        if (color.equals(Color.RED) && wavelengthSet.getOrDefault(Color.RED, true)) {
             lambda = 650 * 0.0000001;
-        } else if (color.equals(Color.GREEN)) {
+        } else if (color.equals(Color.GREEN) && wavelengthSet.getOrDefault(Color.GREEN, true)) {
             lambda = 550 * 0.0000001;
-        } else if (color.equals(Color.BLUE)) {
+        } else if (color.equals(Color.BLUE) && wavelengthSet.getOrDefault(Color.BLUE, true)) {
             lambda = 450 * 0.0000001;
         }
 
@@ -245,6 +265,7 @@ public class DiffractionGrating extends JFrame {
         wykresyList.add(wykres);
         wavelengthSet.put(color, true);
     }
+
 
     public ArrayList<WykresyDyfrakcji> getWykresyList() {
         return wykresyList;
@@ -269,11 +290,11 @@ public class DiffractionGrating extends JFrame {
             if (!source.getValueIsAdjusting()) {
                 int value = source.getValue();
                 if (source == parent.slider1) {
-                    parent.setLambdaAndUpdate(value);
+                    parent.setLambdaAndUpdate(value, Color.WHITE);
                 } else if (source == parent.slider2) {
                     double d = value * 0.00001;
                     parent.gratingField.setText(String.valueOf(value));
-                    for (WykresyDyfrakcji wykres : wykresyList) {
+                    for (WykresyDyfrakcji wykres : parent.getWykresyList()) {
                         wykres.updateD(d);
                     }
                     parent.chartsPanel.repaint();
@@ -282,16 +303,19 @@ public class DiffractionGrating extends JFrame {
         }
     }
 
-    private void setLambdaAndUpdate(int value) {
+
+    private void setLambdaAndUpdate(int value, Color color) {
         double lambda = value * 0.0000001;
         waveField.setText(String.valueOf(lambda));
         for (WykresyDyfrakcji wykres : wykresyList) {
-            if (wavelengthSet.getOrDefault(wykres.getLineColor(), true)) {
+            if (wavelengthSet.getOrDefault(wykres.getLineColor(), true) && wykres.getLineColor().equals(color)) {
                 wykres.updateLambda(lambda);
             }
         }
         chartsPanel.repaint();
     }
+
+
 
     public class SliderChangeListener2 implements ChangeListener {
         private DiffractionGrating parent;
@@ -307,11 +331,42 @@ public class DiffractionGrating extends JFrame {
                 int value = source.getValue();
                 double d = value * 0.00001;
                 parent.gratingField.setText(String.valueOf(value));
-                for (WykresyDyfrakcji wykres : wykresyList) {
+                for (WykresyDyfrakcji wykres : parent.getWykresyList()) {
                     wykres.updateD(d);
                 }
+                parent.chartsPanel.repaint();
             }
         }
     }
+    private void addOrUpdateWykresDyfrakcji(Color color) {
+        double lambda = 0.0005;
+        double d = 0.002;
+
+        if (color.equals(Color.RED) && wavelengthSet.getOrDefault(Color.RED, true)) {
+            lambda = 650 * 0.0000001;
+        } else if (color.equals(Color.GREEN) && wavelengthSet.getOrDefault(Color.GREEN, true)) {
+            lambda = 550 * 0.0000001;
+        } else if (color.equals(Color.BLUE) && wavelengthSet.getOrDefault(Color.BLUE, true)) {
+            lambda = 450 * 0.0000001;
+        }
+
+        boolean found = false;
+        for (WykresyDyfrakcji wykres : wykresyList) {
+            if (wykres.getLineColor().equals(color)) {
+                wykres.updateLambda(lambda);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            WykresyDyfrakcji wykres = new WykresyDyfrakcji(d, lambda, 10);
+            wykres.setLineColor(color);
+            wykres.updateLambda(lambda);
+            wykresyList.add(wykres);
+        }
+    }
+
+
     
 }
