@@ -40,6 +40,7 @@ public class DiffractionGrating extends JFrame {
         chartsPanel.setLayout(new BorderLayout());
         add(chartsPanel, BorderLayout.CENTER);
 
+        slider2 = new JSlider(JSlider.HORIZONTAL, 0, 100, 50);
         Color redColor = Color.RED;
         Color greenColor = Color.GREEN;
         Color blueColor = Color.BLUE;
@@ -65,11 +66,7 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.RED, isChecked);
-                if (isChecked) {
-                    addWykresDyfrakcji(Color.RED);
-                } else {
-                	addOrUpdateWykresDyfrakcji(Color.RED);
-                }
+                updateWykresyWithInitialValues();
                 chartsPanel.repaint();
             }
         });
@@ -79,11 +76,7 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.GREEN, isChecked);
-                if (isChecked) {
-                    addWykresDyfrakcji(Color.GREEN);
-                } else {
-                	addOrUpdateWykresDyfrakcji(Color.GREEN);
-                }
+                updateWykresyWithInitialValues();
                 chartsPanel.repaint();
             }
         });
@@ -93,25 +86,17 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.BLUE, isChecked);
-                if (isChecked) {
-                    addWykresDyfrakcji(Color.BLUE);
-                } else {
-                	addOrUpdateWykresDyfrakcji(Color.BLUE);
-                }
+                updateWykresyWithInitialValues();
                 chartsPanel.repaint();
             }
         });
-
 
         black.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.WHITE, isChecked);
-                
-                if (isChecked) {
-                	addWykresDyfrakcji(blackColor);
-                }
+                updateWykresyWithInitialValues();
                 chartsPanel.repaint();
             }
         });
@@ -165,7 +150,6 @@ public class DiffractionGrating extends JFrame {
 
         right.add(waveLabel);
 
-        slider2 = new JSlider(JSlider.HORIZONTAL, 0, 100, 50);
         
         slider1.setValue(380);
         slider2.setValue(50);
@@ -183,7 +167,54 @@ public class DiffractionGrating extends JFrame {
         restart.addActionListener(restartListener);
         save.addActionListener(saveListener);
         open.addActionListener(openListener);
+        
+        // Dodanie nasłuchiwaczy do pól tekstowych
+        waveField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    int value = Integer.parseInt(waveField.getText());
+                    if (value >= 380 && value <= 720) {
+                        slider1.setValue(value);
+                        setLambdaAndUpdate(value, Color.WHITE);
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Wartość musi być pomiędzy 380 a 720 nm.");
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(null, "Wprowadź poprawną liczbę.");
+                }
+            }
+        });
+
+        gratingField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    int value = Integer.parseInt(gratingField.getText());
+                    if (value >= 0 && value <= 100) {
+                        slider2.setValue(value);
+                        updateGratingConstant(value);
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Wartość musi być pomiędzy 0 a 100.");
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(null, "Wprowadź poprawną liczbę.");
+                }
+            }
+        });
+
+        updateWykresyWithInitialValues();
+        
         setVisible(true);
+    }
+    
+    private void updateWykresyWithInitialValues() {
+        double initialD = slider2.getValue() * 0.00001;
+        gratingField.setText(String.valueOf(slider2.getValue()));
+        for (WykresyDyfrakcji wykres : wykresyList) {
+            wykres.updateD(initialD);
+        }
+        chartsPanel.repaint();
     }
 
     ActionListener exitListener = new ActionListener() {
@@ -209,6 +240,7 @@ public class DiffractionGrating extends JFrame {
             addWykresDyfrakcji(Color.GREEN);
             addWykresDyfrakcji(Color.BLUE);
             addWykresDyfrakcji(Color.WHITE);
+            updateWykresyWithInitialValues();
             chartsPanel.repaint();
         }
     };
@@ -266,7 +298,6 @@ public class DiffractionGrating extends JFrame {
         wavelengthSet.put(color, true);
     }
 
-
     public ArrayList<WykresyDyfrakcji> getWykresyList() {
         return wykresyList;
     }
@@ -303,10 +334,9 @@ public class DiffractionGrating extends JFrame {
         }
     }
 
-
     private void setLambdaAndUpdate(int value, Color color) {
         double lambda = value * 0.0000001;
-        waveField.setText(String.valueOf(lambda));
+        waveField.setText(String.valueOf(value));
         for (WykresyDyfrakcji wykres : wykresyList) {
             if (wavelengthSet.getOrDefault(wykres.getLineColor(), true) && wykres.getLineColor().equals(color)) {
                 wykres.updateLambda(lambda);
@@ -314,8 +344,6 @@ public class DiffractionGrating extends JFrame {
         }
         chartsPanel.repaint();
     }
-
-
 
     public class SliderChangeListener2 implements ChangeListener {
         private DiffractionGrating parent;
@@ -338,6 +366,7 @@ public class DiffractionGrating extends JFrame {
             }
         }
     }
+
     private void addOrUpdateWykresDyfrakcji(Color color) {
         double lambda = 0.0005;
         double d = 0.002;
@@ -350,23 +379,29 @@ public class DiffractionGrating extends JFrame {
             lambda = 450 * 0.0000001;
         }
 
-        boolean found = false;
+        WykresyDyfrakcji existingWykres = null;
         for (WykresyDyfrakcji wykres : wykresyList) {
             if (wykres.getLineColor().equals(color)) {
-                wykres.updateLambda(lambda);
-                found = true;
+                existingWykres = wykres;
                 break;
             }
         }
 
-        if (!found) {
-            WykresyDyfrakcji wykres = new WykresyDyfrakcji(d, lambda, 10);
-            wykres.setLineColor(color);
-            wykres.updateLambda(lambda);
-            wykresyList.add(wykres);
+        if (existingWykres != null) {
+            existingWykres.updateLambda(lambda);
+            existingWykres.updateD(d);
+        } else {
+            WykresyDyfrakcji newWykres = new WykresyDyfrakcji(d, lambda, 10);
+            newWykres.setLineColor(color);
+            wykresyList.add(newWykres);
         }
     }
 
-
-    
+    private void updateGratingConstant(int value) {
+        double d = value * 0.00001;
+        for (WykresyDyfrakcji wykres : wykresyList) {
+            wykres.updateD(d);
+        }
+        chartsPanel.repaint();
+    }
 }
