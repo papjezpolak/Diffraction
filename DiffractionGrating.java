@@ -2,40 +2,48 @@ package wykres;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import javax.swing.*;
 import javax.swing.event.*;
 import java.util.*;
 
 public class DiffractionGrating extends JFrame {
     private static final long serialVersionUID = 1L;
-    ArrayList<WykresyDyfrakcji> wykresyList;
-    JSlider slider1, slider2;
-    JTextField waveField, gratingField;
-    JCheckBox red, green, blue, black;
-    JMenuItem save, open, restart, exit;
-    Map<Color, Boolean> wavelengthSet;
-    JPanel chartsPanel;
+    private ArrayList<WykresyDyfrakcji> wykresyList;
+    private JSlider slider1, slider2;
+    private JTextField waveField, gratingField;
+    private JCheckBox red, green, blue, black;
+    private JMenuItem save, open, restart, exit;
+    private Map<Color, Boolean> wavelengthSet;
+    private JPanel chartsPanel;
 
     public DiffractionGrating() {
         setTitle("Diffraction Simulation");
-        setSize(600, 600);
+        setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         wykresyList = new ArrayList<>();
         wavelengthSet = new HashMap<>();
 
-        chartsPanel = new JPanel(new GridLayout(0, 1));
-        add(new JScrollPane(chartsPanel), BorderLayout.CENTER);
+        chartsPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                setBackground(Color.BLACK);
+                for (WykresyDyfrakcji wykres : wykresyList) {
+                    if (wavelengthSet.getOrDefault(wykres.getLineColor(), true)) {
+                        wykres.paintComponent(g);
+                    }
+                }
+            }
+        };
+        chartsPanel.setLayout(new BorderLayout());
+        add(chartsPanel, BorderLayout.CENTER);
 
         Color redColor = Color.RED;
         Color greenColor = Color.GREEN;
         Color blueColor = Color.BLUE;
-        Color blackColor = Color.BLACK;
+        Color blackColor = Color.WHITE;
 
         addWykresDyfrakcji(redColor);
         addWykresDyfrakcji(greenColor);
@@ -50,14 +58,14 @@ public class DiffractionGrating extends JFrame {
         red.setBackground(Color.red);
         green.setBackground(Color.green);
         blue.setBackground(Color.blue);
-        black.setBackground(Color.black);
-
+        black.setBackground(Color.white);
+        
         red.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.RED, isChecked);
-                drawLinesForSelectedColors();
+                chartsPanel.repaint();
             }
         });
 
@@ -66,7 +74,7 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.GREEN, isChecked);
-                drawLinesForSelectedColors();
+                chartsPanel.repaint();
             }
         });
 
@@ -75,29 +83,38 @@ public class DiffractionGrating extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
                 wavelengthSet.put(Color.BLUE, isChecked);
-                drawLinesForSelectedColors();
+                chartsPanel.repaint();
             }
         });
+
         black.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
-                wavelengthSet.put(Color.BLACK, isChecked);
-                drawLinesForSelectedColors();
+                wavelengthSet.put(Color.WHITE, isChecked);
+                if (slider1 != null) { // Dodajemy sprawdzenie czy slider1 został już zainicjowany
+                    slider1.setEnabled(!isChecked);
+                }
+                if (isChecked) {
+                	addWykresDyfrakcji(blackColor); // Ustawiamy stałe długości fali dla świateł czerwonego, zielonego i niebieskiego
+                }
+                chartsPanel.repaint();
             }
         });
 
         JPanel right = new JPanel();
         right.setLayout(new GridLayout(8, 1));
         JPanel bottom = new JPanel(new FlowLayout());
-        bottom.setBackground(Color.WHITE);
-        right.setPreferredSize(new Dimension(135, 200));
+        bottom.setBackground(Color.BLACK);
+        right.setPreferredSize(new Dimension(150, 200));
 
         JLabel waveLabel = new JLabel("Wavelength (nm):");
+        waveLabel.setForeground(Color.WHITE);
         waveField = new JTextField(5);
-        waveField.setPreferredSize(new Dimension(20, 30));
+        waveField.setPreferredSize(new Dimension(50, 30));
 
         JLabel gratingLabel = new JLabel("Grating constant:");
+        gratingLabel.setForeground(Color.WHITE);
         gratingField = new JTextField(5);
 
         save = new JMenuItem("Save");
@@ -116,12 +133,15 @@ public class DiffractionGrating extends JFrame {
         green.setSelected(true);
         blue.setSelected(true);
         black.setSelected(true);
-
+        
         right.add(red);
         right.add(green);
         right.add(blue);
         right.add(black);
-
+        
+        slider1 = new JSlider(380, 720);
+        right.add(slider1);
+             
         menuBar.add(menu);
         setJMenuBar(menuBar);
 
@@ -133,9 +153,6 @@ public class DiffractionGrating extends JFrame {
         slider2 = new JSlider(JSlider.HORIZONTAL, 0, 100, 50);
         bottom.add(slider2);
         right.add(waveField);
-
-        slider1 = new JSlider(380, 720);
-        right.add(slider1);
 
         add(right, BorderLayout.EAST);
         add(bottom, BorderLayout.SOUTH);
@@ -160,32 +177,31 @@ public class DiffractionGrating extends JFrame {
         public void actionPerformed(ActionEvent e) {
             slider1.setValue(380);
             slider2.setValue(50);
-            waveField.setText("");
-            gratingField.setText("");
+            waveField.setText("380");
+            gratingField.setText("50");
             red.setSelected(true);
             green.setSelected(true);
             blue.setSelected(true);
             black.setSelected(true);
             wavelengthSet.clear();
-            chartsPanel.removeAll();
             wykresyList.clear();
             addWykresDyfrakcji(Color.RED);
             addWykresDyfrakcji(Color.GREEN);
             addWykresDyfrakcji(Color.BLUE);
-            addWykresDyfrakcji(Color.BLACK);
-            drawLinesForSelectedColors();
+            addWykresDyfrakcji(Color.WHITE);
+            chartsPanel.repaint();
         }
     };
     ActionListener saveListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-        	saveParametersToFile("parameters.txt");
+            saveParametersToFile("parameters.txt");
         }
     };
     ActionListener openListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-        	loadParametersFromFile("parameters.txt");
+            loadParametersFromFile("parameters.txt");
         }
     };
     
@@ -203,29 +219,13 @@ public class DiffractionGrating extends JFrame {
         try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(fileName))) {
             Parameters parameters = (Parameters) inputStream.readObject();
             parameters.applyToWykresy(wykresyList);
-            drawLinesForSelectedColors();
             System.out.println("Parametry zostały wczytane z pliku.");
+            chartsPanel.repaint();
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Błąd podczas wczytywania parametrów: " + e.getMessage());
         }
     }
     
-    public void drawLinesForSelectedColors() {
-        for (WykresyDyfrakcji wykres : wykresyList) {
-            boolean isSelected = true;
-
-            if (wavelengthSet.containsKey(wykres.getLineColor())) {
-                isSelected = wavelengthSet.get(wykres.getLineColor());
-            }
-
-            if (isSelected) {
-                wykres.setVisible(true);
-            } else {
-                wykres.setVisible(false);
-            }
-        }
-    }
-
     private void addWykresDyfrakcji(Color color) {
         double lambda = 0.0005;
         double d = 0.002;
@@ -243,16 +243,16 @@ public class DiffractionGrating extends JFrame {
         wykres.updateLambda(lambda);
 
         wykresyList.add(wykres);
-        chartsPanel.add(wykres);
         wavelengthSet.put(color, true);
     }
-    
+
+    public ArrayList<WykresyDyfrakcji> getWykresyList() {
+        return wykresyList;
+    }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                new DiffractionGrating().setVisible(true);
-            }
+        SwingUtilities.invokeLater(() -> {
+            new DiffractionGrating();
         });
     }
 
@@ -276,9 +276,21 @@ public class DiffractionGrating extends JFrame {
                     for (WykresyDyfrakcji wykres : wykresyList) {
                         wykres.updateD(d);
                     }
+                    parent.chartsPanel.repaint();
                 }
             }
         }
+    }
+
+    private void setLambdaAndUpdate(int value) {
+        double lambda = value * 0.0000001;
+        waveField.setText(String.valueOf(lambda));
+        for (WykresyDyfrakcji wykres : wykresyList) {
+            if (wavelengthSet.getOrDefault(wykres.getLineColor(), true)) {
+                wykres.updateLambda(lambda);
+            }
+        }
+        chartsPanel.repaint();
     }
 
     public class SliderChangeListener2 implements ChangeListener {
@@ -301,18 +313,5 @@ public class DiffractionGrating extends JFrame {
             }
         }
     }
-
-    public void setLambdaAndUpdate(double wavelength) {
-        double lambda = wavelength * 0.0000001;
-        waveField.setText(String.valueOf(wavelength));
-        slider1.setValue((int) wavelength);
-
-        if (wavelengthSet.containsKey(Color.BLACK)) {
-            for (WykresyDyfrakcji wykres : wykresyList) {
-                if (wykres.getLineColor() == Color.BLACK) {
-                    wykres.updateLambda(lambda);
-                }
-            }
-        }
-    }
+    
 }

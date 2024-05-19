@@ -6,8 +6,8 @@ import java.awt.*;
 public class WykresyDyfrakcji extends JPanel {
     private static final long serialVersionUID = 1L;
     private Color lineColor = Color.BLACK;
-    private double d;
-    private double lambda;
+    double d;
+    double lambda;
     private int n;
     private int R = 150;
     private int centerX;
@@ -17,7 +17,9 @@ public class WykresyDyfrakcji extends JPanel {
         this.d = d;
         this.lambda = lambda;
         this.n = n;
+        setBackground(Color.BLACK);
     }
+
     public double getD() {
         return d;
     }
@@ -45,12 +47,18 @@ public class WykresyDyfrakcji extends JPanel {
         return lineColor;
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+    public void paintComponent(Graphics g) {
+        if (!isVisible()) {
+            return;
+        }
 
-        centerX = getWidth() /2;
-        centerY = getHeight() /2;
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(lineColor);
+
+        int width = g.getClipBounds().width;
+        int height = g.getClipBounds().height;
+        centerX = width / 2;
+        centerY = height / 2;
 
         for (int i = -n; i <= n; i++) {
             double theta = Math.asin(i * lambda / d);
