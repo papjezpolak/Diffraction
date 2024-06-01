@@ -3,7 +3,7 @@ package wykres;
 import javax.swing.*;
 import java.awt.*;
 
-public class WykresyDyfrakcji extends JPanel {
+public class WykresyPrazki extends JPanel {
     private static final long serialVersionUID = 1L;
     private Color lineColor = Color.BLACK;
     double d;
@@ -16,12 +16,13 @@ public class WykresyDyfrakcji extends JPanel {
     Color culor;
     private DiffractionGrating diffractionGrating;
 
-    public WykresyDyfrakcji(double d, double lambda, int n, DiffractionGrating diffractionGrating) {
+    public WykresyPrazki(double d, double lambda, int n, DiffractionGrating diffractionGrating) {
         this.d = d;
         this.lambda = lambda;
         this.n = n;
         this.diffractionGrating = diffractionGrating;
-        setBackground(Color.BLACK);
+        setBackground(Color.WHITE);
+        setPreferredSize(new Dimension(150, 200));
     }
 
     public double getD() {
@@ -55,7 +56,7 @@ public class WykresyDyfrakcji extends JPanel {
         if (lineColor.equals(Color.WHITE)) {
             cc = diffractionGrating.getSlider1Value();
             culor = DiffractionGrating.funk(cc);
-            lambda = cc * 0.0000001; // Update lambda based on slider value
+            lambda = cc * 0.0000001;
             return culor;
         } else {
             return lineColor;
@@ -80,12 +81,11 @@ public class WykresyDyfrakcji extends JPanel {
             double theta = Math.asin(i * lambda / d);
             double x = R * Math.cos(theta);
             double y = R * Math.sin(theta);
-            int startx = centerX;
-            int starty = centerY;
-            int vx = (int) (centerX + x);
+            int vx = (int) (centerX);
             int vy = (int) (centerY + y);
+            int vx2 = (int) (vx + R);
             g.setColor(getLineColor());
-            g.drawLine(startx, starty, vx, vy);
+            g.drawLine(vx, vy, vx2, vy);
         }
     }
 }
