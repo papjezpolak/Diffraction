@@ -21,7 +21,7 @@ public class WykresyPrazki extends JPanel {
         this.lambda = lambda;
         this.n = n;
         this.diffractionGrating = diffractionGrating;
-        setBackground(Color.WHITE);
+        setBackground(Color.BLACK);
         setPreferredSize(new Dimension(150, 200));
     }
 
@@ -72,18 +72,17 @@ public class WykresyPrazki extends JPanel {
         g2d.setColor(getLineColor());
         int width = g.getClipBounds().width;
         int height = g.getClipBounds().height;
-        centerX = width / 2;
+        centerX = width / 4;
         centerY = height / 2;
 
-        R = 0.5 * centerX;
+        R = 0.7*centerY;
 
         for (int i = -n; i <= n; i++) {
             double theta = Math.asin(i * lambda / d);
-            double x = R * Math.cos(theta);
             double y = R * Math.sin(theta);
             int vx = (int) (centerX);
             int vy = (int) (centerY + y);
-            int vx2 = (int) (vx + R);
+            int vx2 = (int) (vx + 75);
             g.setColor(getLineColor());
             g.drawLine(vx, vy, vx2, vy);
         }

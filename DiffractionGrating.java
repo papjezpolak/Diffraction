@@ -17,7 +17,8 @@ public class DiffractionGrating extends JFrame {
     private JCheckBox red, green, blue, black;
     private JMenuItem save, open, restart, exit;
     private Map<Color, Boolean> wavelengthSet;
-    private JPanel chartsPanel;
+    private Color sliderColor;
+    JPanel chartsPanel;
     private JPanel pradkiPanel;
     static Color purple = new Color(102, 0, 153);
 
@@ -36,7 +37,7 @@ public class DiffractionGrating extends JFrame {
                 super.paintComponent(g);
                 setBackground(Color.BLACK);
                 for (WykresyDyfrakcji wykres : wykresyList) {
-                    if (wavelengthSet.getOrDefault(wykres.getLineColor(), true)) {
+                	if (wavelengthSet.getOrDefault(wykres.getLineColor(), true) || wykres.getLineColor().equals(sliderColor)) {
                         wykres.paintComponent(g);
                     }
                 }
@@ -49,15 +50,16 @@ public class DiffractionGrating extends JFrame {
         	@Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                setBackground(Color.WHITE);
-                for (WykresyPrazki wykres : wykresy2List) {
-                    if (wavelengthSet.getOrDefault(wykres.getLineColor(), true)) {
-                        wykres.paintComponent(g);
+                setBackground(Color.BLACK);
+                for (WykresyPrazki wykres2 : wykresy2List) {
+                	if (wavelengthSet.getOrDefault(wykres2.getLineColor(), true) || wykres2.getLineColor().equals(sliderColor)) {
+                        wykres2.paintComponent(g);
                     }
                 }
             }
         };
-
+        pradkiPanel.setLayout(new BorderLayout());
+        
         slider2 = new JSlider(JSlider.HORIZONTAL, 0, 100, 50);
         slider1 = new JSlider(380, 720);
         slider1.setValue(380);
@@ -117,18 +119,22 @@ public class DiffractionGrating extends JFrame {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 boolean isChecked = e.getStateChange() == ItemEvent.SELECTED;
-                wavelengthSet.put(Color.WHITE, isChecked);
+                wavelengthSet.put(sliderColor, isChecked);
+                if (isChecked) {
+                    sliderColor = Color.WHITE;
+                }
                 updateWykresyWithInitialValues();
                 chartsPanel.repaint();
+                System.out.println(sliderColor);
             }
         });
-        pradkiPanel.setLayout(new GridLayout(8, 8));
-        pradkiPanel.setPreferredSize(new Dimension(150, 200));
+
+        
 
         JPanel right = new JPanel();
         JPanel left = new JPanel();
         right.setLayout(new GridLayout(8, 1));
-        left.setLayout(new GridLayout(8, 1));
+        left.setLayout(new BorderLayout());
         JPanel bottom = new JPanel(new FlowLayout());
         bottom.setBackground(Color.BLACK);
         right.setPreferredSize(new Dimension(150, 200));
@@ -181,8 +187,8 @@ public class DiffractionGrating extends JFrame {
         bottom.add(gratingLabel);
         bottom.add(gratingField);
         bottom.add(slider2);
-        add(left, BorderLayout.WEST);
-        add(right, BorderLayout.EAST);
+        add(right, BorderLayout.WEST);
+        add(left, BorderLayout.EAST);
         add(bottom, BorderLayout.SOUTH);
 
         slider1.addChangeListener(new SliderChangeListener(this));
@@ -271,6 +277,7 @@ public class DiffractionGrating extends JFrame {
             addWykresDyfrakcji(Color.WHITE);
             updateWykresyWithInitialValues();
             chartsPanel.repaint();
+            pradkiPanel.repaint();
         }
     };
     ActionListener saveListener = new ActionListener() {
@@ -361,8 +368,11 @@ public class DiffractionGrating extends JFrame {
         @Override
         public void stateChanged(ChangeEvent e) {
             JSlider source = (JSlider) e.getSource();
+            int value = slider1.getValue();
+            waveField.setText(String.valueOf(value));
+            Color color = funk(value);
+            setLambdaAndUpdate(value, color);
             if (!source.getValueIsAdjusting()) {
-                int value = source.getValue();
                 if (source == parent.slider1) {
                     parent.setLambdaAndUpdate(value, Color.WHITE);
                 } else if (source == parent.slider2) {
@@ -386,7 +396,7 @@ public class DiffractionGrating extends JFrame {
         waveField.setText(String.valueOf(value));
         for (WykresyDyfrakcji wykres : wykresyList) {
             if (wavelengthSet.getOrDefault(wykres.getLineColor(), true)) {
-                if (wykres.getLineColor().equals(color) || wykres.getLineColor().equals(Color.WHITE)) {
+                if (wykres.getLineColor().equals(color) || (wykres.getLineColor().equals(Color.WHITE) && sliderColor.equals(color))) {
                     wykres.updateLambda(lambda);
                     if (wykres.getLineColor().equals(Color.WHITE)) {
                         wykres.setLineColor(funk(value));
@@ -396,7 +406,7 @@ public class DiffractionGrating extends JFrame {
         }
         for (WykresyPrazki wykres2 : wykresy2List) {
             if (wavelengthSet.getOrDefault(wykres2.getLineColor(), true)) {
-                if (wykres2.getLineColor().equals(color) || wykres2.getLineColor().equals(Color.WHITE)) {
+                if (wykres2.getLineColor().equals(color) || (wykres2.getLineColor().equals(Color.WHITE) && sliderColor.equals(color))) {
                     wykres2.updateLambda(lambda);
                     if (wykres2.getLineColor().equals(Color.WHITE)) {
                         wykres2.setLineColor(funk(value));
@@ -404,8 +414,11 @@ public class DiffractionGrating extends JFrame {
                 }
             }
         }
+        sliderColor = color; // Update the slider color
         pradkiPanel.repaint();
+        chartsPanel.repaint();
     }
+
 
 
     public class SliderChangeListener2 implements ChangeListener {
@@ -418,14 +431,22 @@ public class DiffractionGrating extends JFrame {
         @Override
         public void stateChanged(ChangeEvent e) {
             JSlider source = (JSlider) e.getSource();
+            int value = slider2.getValue();
+            int value2 = slider1.getValue();
+            gratingField.setText(String.valueOf(value));
+            Color color = funk(value2);
+            setLambdaAndUpdate(value2, color);
             if (!source.getValueIsAdjusting()) {
-                int value = source.getValue();
                 double d = value * 0.00001;
                 parent.gratingField.setText(String.valueOf(value));
                 for (WykresyDyfrakcji wykres : parent.getWykresyList()) {
                     wykres.updateD(d);
                 }
+                for (WykresyPrazki wykres2 : parent.getWykresy2List()) {
+                    wykres2.updateD(d);
+                }
                 parent.chartsPanel.repaint();
+                parent.pradkiPanel.repaint();
             }
         }
     }

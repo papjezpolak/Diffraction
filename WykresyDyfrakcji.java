@@ -9,10 +9,11 @@ public class WykresyDyfrakcji extends JPanel {
     double d;
     double lambda;
     private int n;
-    int cc;
+    int cc, c;
+    int width,height;
     private double R;
-    private int centerX;
-    private int centerY;
+    int centerX;
+    int centerY;
     Color culor;
     private DiffractionGrating diffractionGrating;
 
@@ -22,6 +23,10 @@ public class WykresyDyfrakcji extends JPanel {
         this.n = n;
         this.diffractionGrating = diffractionGrating;
         setBackground(Color.BLACK);
+    }
+    public int setframe() {
+    	c = (int)(0.5 * Math.min(centerX, centerY));
+    	return c;
     }
 
     public double getD() {
@@ -69,12 +74,12 @@ public class WykresyDyfrakcji extends JPanel {
 
         Graphics2D g2d = (Graphics2D) g;
         g2d.setColor(getLineColor());
-        int width = g.getClipBounds().width;
-        int height = g.getClipBounds().height;
+        width = g.getClipBounds().width;
+        height = g.getClipBounds().height;
         centerX = width / 2;
         centerY = height / 2;
 
-        R = 0.5 * centerX;
+        R = 0.7 * Math.min(centerX, centerY);
 
         for (int i = -n; i <= n; i++) {
             double theta = Math.asin(i * lambda / d);
