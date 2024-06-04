@@ -60,7 +60,7 @@ public class WykresyDyfrakcji extends JPanel {
         if (lineColor.equals(Color.WHITE)) {
             cc = diffractionGrating.getSlider1Value();
             culor = DiffractionGrating.funk(cc);
-            lambda = cc * 0.0000001; // Update lambda based on slider value
+            lambda = cc * 0.0000001;
             return culor;
         } else {
             return lineColor;
@@ -79,7 +79,7 @@ public class WykresyDyfrakcji extends JPanel {
         centerX = width / 2;
         centerY = height / 2;
 
-        R = 0.7 * Math.min(centerX, centerY);
+        R = 0.9 * Math.min(centerX, centerY);
 
         for (int i = -n; i <= n; i++) {
             double theta = Math.asin(i * lambda / d);

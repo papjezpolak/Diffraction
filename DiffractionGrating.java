@@ -2,10 +2,13 @@ package wykres;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.*;
 import java.util.*;
+import javax.swing.JFileChooser;
 
 public class DiffractionGrating extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -15,7 +18,7 @@ public class DiffractionGrating extends JFrame {
 	private JSlider slider2;
     private JTextField waveField, gratingField;
     private JCheckBox red, green, blue, black;
-    private JMenuItem save, open, restart, exit;
+    private JMenuItem save, open, restart, exit, saveImage;
     private Map<Color, Boolean> wavelengthSet;
     private Color sliderColor;
     JPanel chartsPanel;
@@ -24,18 +27,22 @@ public class DiffractionGrating extends JFrame {
     static Color redo = new Color(254, 0, 0);
     static Color bulu = new Color(0, 0, 254);
     static Color geen = new Color(0, 254, 0);
+    JFrame frame;
 
     public DiffractionGrating() {
         setTitle("Diffraction Simulation");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.frame = this; 
 
         wykresyList = new ArrayList<>();
         wykresy2List = new ArrayList<>();
         wavelengthSet = new HashMap<>();
 
         chartsPanel = new JPanel() {
-            @Override
+			private static final long serialVersionUID = 1L;
+
+			@Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 setBackground(Color.BLACK);
@@ -50,7 +57,9 @@ public class DiffractionGrating extends JFrame {
         add(chartsPanel, BorderLayout.CENTER);
         
         pradkiPanel = new JPanel() {
-        	@Override
+			private static final long serialVersionUID = 1L;
+
+			@Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 setBackground(Color.BLACK);
@@ -132,8 +141,6 @@ public class DiffractionGrating extends JFrame {
             }
         });
 
-        
-
         JPanel right = new JPanel();
         JPanel left = new JPanel();
         right.setLayout(new GridLayout(8, 1));
@@ -142,7 +149,6 @@ public class DiffractionGrating extends JFrame {
         bottom.setBackground(Color.BLACK);
         right.setPreferredSize(new Dimension(150, 200));
         left.setPreferredSize(new Dimension(150, 200));
-        
 
         JLabel waveLabel = new JLabel("Wavelength (nm):");
         waveLabel.setForeground(Color.WHITE);
@@ -154,6 +160,7 @@ public class DiffractionGrating extends JFrame {
         gratingField = new JTextField(5);
 
         save = new JMenuItem("Save");
+        saveImage = new JMenuItem("Save Image");
         open = new JMenuItem("Open");
         restart = new JMenuItem("Restart");
         exit = new JMenuItem("Exit");
@@ -161,6 +168,7 @@ public class DiffractionGrating extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu("Menu");
         menu.add(save);
+        menu.add(saveImage);
         menu.add(open);
         menu.add(restart);
         menu.add(exit);
@@ -200,6 +208,7 @@ public class DiffractionGrating extends JFrame {
         restart.addActionListener(restartListener);
         save.addActionListener(saveListener);
         open.addActionListener(openListener);
+        saveImage.addActionListener(saveimageListener);
         
         waveField.addActionListener(new ActionListener() {
             @Override
@@ -235,7 +244,7 @@ public class DiffractionGrating extends JFrame {
             }
         });
         updateWykresyWithInitialValues();
-        
+        updateCheckboxes();
         setVisible(true);
     }
     
@@ -251,7 +260,6 @@ public class DiffractionGrating extends JFrame {
         chartsPanel.repaint();
         pradkiPanel.repaint();
     }
-
 
     ActionListener exitListener = new ActionListener() {
         @Override
@@ -285,25 +293,42 @@ public class DiffractionGrating extends JFrame {
     ActionListener saveListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            saveParametersToFile("parameters.txt");
+            JFileChooser fileChooser = new JFileChooser();
+            int returnValue = fileChooser.showSaveDialog(null);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                saveParametersToFile(selectedFile.getAbsolutePath());
+            }
         }
     };
+    ActionListener saveimageListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            savePanelAsImage(frame);
+        }
+    };
+
     ActionListener openListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            loadParametersFromFile("parameters.txt");
+            JFileChooser fileChooser = new JFileChooser();
+            int returnValue = fileChooser.showOpenDialog(null);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                loadParametersFromFile(selectedFile.getAbsolutePath());
+            }
         }
     };
     
     private void saveParametersToFile(String fileName) {
         try (ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream(fileName))) {
-            Parameters parameters = new Parameters(wykresyList);
+            Parameters parameters = new Parameters(wykresyList, slider1.getValue(), slider2.getValue(), wavelengthSet);
             Parameters2 parameters2 = new Parameters2(wykresy2List);
             outputStream.writeObject(parameters);
             outputStream.writeObject(parameters2);
-            System.out.println("Parametry zostały zapisane do pliku.");
+            System.out.println("Parameters have been saved to the file.");
         } catch (IOException e) {
-            System.out.println("Błąd podczas zapisywania parametrów: " + e.getMessage());
+            System.out.println("Error saving parameters: " + e.getMessage());
         }
     }
 
@@ -313,11 +338,23 @@ public class DiffractionGrating extends JFrame {
             Parameters2 parameters2 = (Parameters2) inputStream.readObject();
             parameters.applyToWykresy(wykresyList);
             parameters2.applyToWykresy2(wykresy2List);
-            System.out.println("Parametry zostały wczytane z pliku.");
+            slider1.setValue(parameters.getSlider1Value());
+            slider2.setValue(parameters.getSlider2Value());
+            wavelengthSet = parameters.getWavelengthSet();
+            updateCheckboxes();
+            System.out.println("Parameters have been loaded from the file.");
             chartsPanel.repaint();
+            pradkiPanel.repaint();
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("Błąd podczas wczytywania parametrów: " + e.getMessage());
+            System.out.println("Error loading parameters: " + e.getMessage());
         }
+    }
+
+    private void updateCheckboxes() {
+        red.setSelected(wavelengthSet.getOrDefault(redo, true));
+        green.setSelected(wavelengthSet.getOrDefault(geen, true));
+        blue.setSelected(wavelengthSet.getOrDefault(bulu, true));
+        black.setSelected(wavelengthSet.getOrDefault(purple, true));
     }
     
     private void addWykresDyfrakcji(Color color) {
@@ -344,7 +381,6 @@ public class DiffractionGrating extends JFrame {
         wykresy2List.add(wykres2);
         wavelengthSet.put(color, true);
     }
-
 
     public ArrayList<WykresyDyfrakcji> getWykresyList() {
         return wykresyList;
@@ -417,8 +453,6 @@ public class DiffractionGrating extends JFrame {
         chartsPanel.repaint();
     }
 
-
-
     public class SliderChangeListener2 implements ChangeListener {
         private DiffractionGrating parent;
 
@@ -478,6 +512,30 @@ public class DiffractionGrating extends JFrame {
             return Color.RED;
         } else {
             return Color.WHITE;
+        }
+    }
+    private void savePanelAsImage(JFrame frame) {
+        BufferedImage image = new BufferedImage(frame.getWidth(), frame.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2 = image.createGraphics();
+        frame.paint(g2);
+        g2.dispose();
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Image");
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("PNG Image", "png"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            if (!fileToSave.getAbsolutePath().endsWith(".png")) {
+                fileToSave = new File(fileToSave + ".png");
+            }
+            try {
+                ImageIO.write(image, "png", fileToSave);
+                System.out.println("Image saved as " + fileToSave.getAbsolutePath());
+            } catch (IOException e) {
+                System.out.println("Error saving image: " + e.getMessage());
+            }
         }
     }
 }

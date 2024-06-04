@@ -75,7 +75,7 @@ public class WykresyPrazki extends JPanel {
         centerX = width / 4;
         centerY = height / 2;
 
-        R = 0.7*centerY;
+        R = 0.9*centerY;
 
         for (int i = -n; i <= n; i++) {
             double theta = Math.asin(i * lambda / d);
