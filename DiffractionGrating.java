@@ -1,4 +1,3 @@
-package wykres;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -9,6 +8,12 @@ import javax.swing.*;
 import javax.swing.event.*;
 import java.util.*;
 import javax.swing.JFileChooser;
+
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 public class DiffractionGrating extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -28,6 +33,9 @@ public class DiffractionGrating extends JFrame {
     static Color bulu = new Color(0, 0, 254);
     static Color geen = new Color(0, 254, 0);
     JFrame frame;
+    private JMenuItem languageItem;
+    JLabel waveLabel;
+    JLabel gratingLabel;
 
     public DiffractionGrating() {
         setTitle("Diffraction Simulation");
@@ -150,14 +158,16 @@ public class DiffractionGrating extends JFrame {
         right.setPreferredSize(new Dimension(150, 200));
         left.setPreferredSize(new Dimension(150, 200));
 
-        JLabel waveLabel = new JLabel("Wavelength (nm):");
+        waveLabel = new JLabel("Wavelength (nm):");
         waveLabel.setForeground(Color.WHITE);
         waveField = new JTextField(5);
         waveField.setPreferredSize(new Dimension(50, 30));
 
-        JLabel gratingLabel = new JLabel("Grating constant:");
+        gratingLabel = new JLabel("Grating constant:");
         gratingLabel.setForeground(Color.WHITE);
         gratingField = new JTextField(5);
+        
+        languageItem = new JMenuItem();
 
         save = new JMenuItem("Save");
         saveImage = new JMenuItem("Save Image");
@@ -172,6 +182,8 @@ public class DiffractionGrating extends JFrame {
         menu.add(open);
         menu.add(restart);
         menu.add(exit);
+        menu.addSeparator();
+        menu.add(languageItem);
         
         red.setSelected(true);
         green.setSelected(true);
@@ -246,7 +258,43 @@ public class DiffractionGrating extends JFrame {
         updateWykresyWithInitialValues();
         updateCheckboxes();
         setVisible(true);
+        
+        languageItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String[] languages = {"English", "Polski"};
+                String selectedLanguage = (String) JOptionPane.showInputDialog(frame, "Select Language", "Language", JOptionPane.QUESTION_MESSAGE, null, languages, languages[0]);
+                if (selectedLanguage != null) {
+                    if (selectedLanguage.equals("English")) {
+                        updateLanguage("en", "US");
+                    } else if (selectedLanguage.equals("Polski")) {
+                        updateLanguage("pl", "PL");
+                    }
+                }
+            }
+        });
+        updateLanguage("en", "US");
     }
+    
+    private void updateLanguage(String lang, String country) {
+        Locale locale = new Locale(lang, country);
+        ResourceBundle bundle = ResourceBundle.getBundle("LabelsBundle", locale);
+
+        red.setText(bundle.getString("red"));
+        green.setText(bundle.getString("green"));
+        blue.setText(bundle.getString("blue"));
+        black.setText(bundle.getString("black"));
+
+        save.setText(bundle.getString("save"));
+        saveImage.setText(bundle.getString("saveImage"));
+        open.setText(bundle.getString("open"));
+        restart.setText(bundle.getString("restart"));
+        exit.setText(bundle.getString("exit"));
+        languageItem.setText(bundle.getString("language"));
+        
+        waveLabel.setText(bundle.getString("wavelength"));
+        gratingLabel.setText(bundle.getString("gratingconstant"));
+    }
+
     
     private void updateWykresyWithInitialValues() {
         double initialD = slider2.getValue() * 0.00001;
@@ -369,7 +417,7 @@ public class DiffractionGrating extends JFrame {
             lambda = 450 * 0.0000001;
         }
 
-        WykresyDyfrakcji wykres = new WykresyDyfrakcji(d, lambda, 10, this);
+        WykresyDyfrakcji wykres = new WykresyDyfrakcji(d, lambda, 10);
         wykres.setLineColor(color);
         wykres.updateLambda(lambda);
         
